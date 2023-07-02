@@ -19,7 +19,7 @@ public class ClassNullableChecker {
     public void checkAllNull() throws IOException, AnalyzerException {
         ClassReader reader = new ClassReader("org.example.TestCase");
         ClassNode classNode = new ClassNode();
-        reader.accept(classNode, 0);
+        reader.accept(classNode, ClassReader.EXPAND_FRAMES);
 
         List<MethodNode> methods = classNode.methods;
 
@@ -41,10 +41,10 @@ public class ClassNullableChecker {
                 } else {
                     instructionsSet.add(instruction);
                 }
-               // excessiveNullCheck(classNode, methodNode, instruction);
+                excessiveNullCheck(classNode, methodNode, instruction);
             }
 
-            System.out.println(instructinHashMap);
+            //System.out.println(instructinHashMap);
         }
     }
 
@@ -56,14 +56,14 @@ public class ClassNullableChecker {
         AbstractInsnNode previousInstruction = instruction.getPrevious();
         AbstractInsnNode nextInstruction = instruction.getNext();
 
-        System.out.println("Method name: " + methodNode.name);
-        System.out.println("Method instruction: " + instruction.getOpcode());
+        //System.out.println("Method name: " + methodNode.name);
+        //System.out.println("Method instruction: " + instruction.getOpcode());
 
         if (instruction.getOpcode() == IFNULL || instruction.getOpcode() == IFNONNULL) {
-            if (nextInstruction.getOpcode() != RETURN) {
-                if (instruction.getNext().getOpcode() == GOTO || instruction.getNext().getOpcode() == F_NEW) {
-                    System.out.println("contains excessive: " + instruction.getOpcode());
-                }
+            String checkedValue = getFrameValue(classNode, methodNode, previousInstruction);
+            System.out.println(checkedValue);
+            if(checkedValue != null) {
+                System.out.println("Excessive Null Check "+checkedValue);
             }
         }
 
@@ -100,11 +100,12 @@ public class ClassNullableChecker {
             VarInsnNode vn = (VarInsnNode) instruction;
             //System.out.println("accessing variable # " + vn.var);
             ConstantTracker.ConstantValue var = frame.getLocal(vn.var);
-            //System.out.println("\tcontains " + var);
 
-            value = String.valueOf(var);
+            //System.out.println("\tcontains in " + var.type);
+
+            value = Objects.equals(var.type.toString(), "R") ? "realNull" : String.valueOf(var);
         }
-        System.out.println("\tcontains " + value);
+        //System.out.println("\tcontains " + value);
         return value;
     }
 }
